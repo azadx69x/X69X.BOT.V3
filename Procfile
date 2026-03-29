@@ -1,1 +1,1 @@
-web: node index.js
+web: node patch-fca.js && node index.js
