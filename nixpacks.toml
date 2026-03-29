@@ -1,6 +1,6 @@
 [phases.setup]
 nixPkgs = [
-  "nodejs_22",
+  "nodejs_20",
   "npm",
   "pkg-config",
   "cairo",
