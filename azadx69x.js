@@ -216,25 +216,30 @@ if (config.autoRestart) {
 }
 
 (async () => {
-	// Google APIs removed - Email functionality disabled
+	// Google APIs completely removed
 	global.utils.sendMail = async () => {
-		console.log("📧 Email functionality disabled (Google APIs removed)");
+		console.log("📧 Email disabled - Google APIs removed");
 		return null;
 	};
 	global.utils.transporter = null;
 
-	const { data: { version } } = await axios.get("https://raw.githubusercontent.com/ncazad/Azadx69x/refs/heads/main/package.json");
-	const currentVersion = require("./package.json").version;
-	if (compareVersion(version, currentVersion) === 1)
-		utils.log.master("NEW VERSION", getText(
-			"Goat",
-			"newVersionDetected",
-			colors.gray(currentVersion),
-			colors.hex("#eb6a07", version),
-			colors.hex("#eb6a07", "node update")
-		));
+	// Check version
+	try {
+		const { data: { version } } = await axios.get("https://raw.githubusercontent.com/ncazad/Azadx69x/refs/heads/main/package.json");
+		const currentVersion = require("./package.json").version;
+		if (compareVersion(version, currentVersion) === 1)
+			utils.log.master("NEW VERSION", getText(
+				"Goat",
+				"newVersionDetected",
+				colors.gray(currentVersion),
+				colors.hex("#eb6a07", version),
+				colors.hex("#eb6a07", "node update")
+			));
+	} catch (e) {
+		console.log("Version check skipped");
+	}
 
-	// Google Drive functionality stubbed
+	// Stub Google Drive
 	utils.drive = {
 		checkAndCreateParentFolder: async () => null,
 		parentID: null
