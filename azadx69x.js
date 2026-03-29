@@ -216,11 +216,9 @@ if (config.autoRestart) {
 }
 
 (async () => {
-	// Removed Google APIs - Email functionality disabled
-	// If you need email support, configure SMTP directly in nodemailer without OAuth2
-	
+	// Google APIs removed - Email functionality disabled
 	global.utils.sendMail = async () => {
-		console.log("Email functionality disabled - Google APIs removed");
+		console.log("📧 Email functionality disabled (Google APIs removed)");
 		return null;
 	};
 	global.utils.transporter = null;
@@ -236,7 +234,7 @@ if (config.autoRestart) {
 			colors.hex("#eb6a07", "node update")
 		));
 
-	// Google Drive functionality removed
+	// Google Drive functionality stubbed
 	utils.drive = {
 		checkAndCreateParentFolder: async () => null,
 		parentID: null
