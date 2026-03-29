@@ -1,7 +1,31 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "NIXPACKS",
+    "nixpacksPlan": {
+      "phases": {
+        "setup": {
+          "nixPkgs": [
+            "nodejs_18",
+            "npm",
+            "pkg-config",
+            "cairo",
+            "pango",
+            "libjpeg",
+            "giflib",
+            "librsvg",
+            "pixman",
+            "libuuid",
+            "python3",
+            "make",
+            "gcc"
+          ]
+        },
+        "install": {
+          "cmds": ["npm install --build-from-source"]
+        }
+      }
+    }
   },
   "deploy": {
     "startCommand": "node index.js",
