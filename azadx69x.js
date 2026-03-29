@@ -22,169 +22,169 @@ process.on('uncaughtException', error => console.log(error));
 
 const axios = require("axios");
 const fs = require("fs-extra");
-const nodemailer = require("nodemailer");
 const { execSync } = require('child_process');
 const log = require('./logger/log.js');
 const path = require("path");
 
-process.env.BLUEBIRD_W_FORGOTTEN_RETURN = 0;
-
-function getConfigPath(baseName, ext = ".json") {
-	try {
-		const devPath = path.join(__dirname, `${baseName}.dev${ext}`);
-		const normalPath = path.join(__dirname, `${baseName}${ext}`);
-		if (fs.existsSync(devPath)) {
-			console.log(`⏳ Loaded ${baseName}.dev${ext}`);
-			return devPath;
-		} else if (fs.existsSync(normalPath)) {
-			console.log(`✅ Loaded ${baseName}${ext}`);
-			return normalPath;
-		} else {
-			throw new Error(`⛔ Missing ${baseName}${ext} or ${baseName}.dev${ext}`);
-		}
-	} catch (err) {
-		throw new Error(err.message);
-	}
-}
+process.env.BLUEBIRD_W_FORGOTTEN_RETURN = 0; // Disable warning: "Warning: a promise was created in a handler but was not returned from it"
 
 function validJSON(pathDir) {
-	try {
-		if (!fs.existsSync(pathDir))
-			throw new Error(`File "${pathDir}" not found`);
-		execSync(`npx jsonlint "${pathDir}"`, { stdio: 'pipe' });
-		return true;
-	}
-	catch (err) {
-		let msgError = err.message;
-		msgError = msgError.split("\n").slice(1).join("\n");
-		const indexPos = msgError.indexOf("    at");
-		msgError = msgError.slice(0, indexPos != -1 ? indexPos - 1 : msgError.length);
-		throw new Error(msgError);
-	}
+        try {
+                if (!fs.existsSync(pathDir))
+                        throw new Error(`File "${pathDir}" not found`);
+                execSync(`npx jsonlint "${pathDir}"`, { stdio: 'pipe' });
+                return true;
+        }
+        catch (err) {
+                let msgError = err.message;
+                msgError = msgError.split("\n").slice(1).join("\n");
+                const indexPos = msgError.indexOf("    at");
+                msgError = msgError.slice(0, indexPos != -1 ? indexPos - 1 : msgError.length);
+                throw new Error(msgError);
+        }
 }
 
-const dirConfig = getConfigPath("config", ".json");
-const dirConfigCommands = getConfigPath("configCommands", ".json");
-const dirAccount = getConfigPath("account", ".txt");
+const dirConfig = path.normalize(`${__dirname}/config.json`);
+const dirConfigCommands = path.normalize(`${__dirname}/configCommands.json`);
+const dirAccount = path.normalize(`${__dirname}/account.txt`);
 
 for (const pathDir of [dirConfig, dirConfigCommands]) {
-	try {
-		validJSON(pathDir);
-	}
-	catch (err) {
-		log.error("CONFIG", `Invalid JSON file "${pathDir.replace(__dirname, "")}":\n${err.message.split("\n").map(line => `  ${line}`).join("\n")}\nPlease fix it and restart bot`);
-		process.exit(0);
-	}
+        try {
+                validJSON(pathDir);
+        }
+        catch (err) {
+                log.error("CONFIG", `Invalid JSON file "${pathDir.replace(__dirname, "")}":\n${err.message.split("\n").map(line => `  ${line}`).join("\n")}\nPlease fix it and restart bot`);
+                process.exit(0);
+        }
 }
-
 const config = require(dirConfig);
 if (config.whiteListMode?.whiteListIds && Array.isArray(config.whiteListMode.whiteListIds))
-	config.whiteListMode.whiteListIds = config.whiteListMode.whiteListIds.map(id => id.toString());
+        config.whiteListMode.whiteListIds = config.whiteListMode.whiteListIds.map(id => id.toString());
 const configCommands = require(dirConfigCommands);
 
 global.GoatBot = {
-	startTime: Date.now() - process.uptime() * 1000,
-	commands: new Map(),
-	eventCommands: new Map(),
-	commandFilesPath: [],
-	eventCommandsFilesPath: [],
-	aliases: new Map(),
-	onFirstChat: [],
-	onChat: [],
-	onEvent: [],
-	onReply: new Map(),
-	onReaction: new Map(),
-	onAnyEvent: [],
-	config,
-	configCommands,
-	envCommands: {},
-	envEvents: {},
-	envGlobal: {},
-	reLoginBot: function () { },
-	Listening: null,
-	oldListening: [],
-	callbackListenTime: {},
-	storage5Message: [],
-	fcaApi: null,
-	botID: null
+        startTime: Date.now() - process.uptime() * 1000, // time start bot (ms)
+        commands: new Map(), // store all commands
+        eventCommands: new Map(), // store all event commands
+        commandFilesPath: [], // [{ filePath: "", commandName: [] }
+        eventCommandsFilesPath: [], // [{ filePath: "", commandName: [] }
+        aliases: new Map(), // store all aliases
+        onFirstChat: [], // store all onFirstChat [{ commandName: "", threadIDsChattedFirstTime: [] }}]
+        onChat: [], // store all onChat
+        onEvent: [], // store all onEvent
+        onReply: new Map(), // store all onReply
+        onReaction: new Map(), // store all onReaction
+        onAnyEvent: [], // store all onAnyEvent
+        config, // store config
+        configCommands, // store config commands
+        envCommands: {}, // store env commands
+        envEvents: {}, // store env events
+        envGlobal: {}, // store env global
+        reLoginBot: function () { }, // function relogin bot, will be set in bot/login/login.js
+        Listening: null, // store current listening handle
+        oldListening: [], // store old listening handle
+        callbackListenTime: {}, // store callback listen 
+        storage5Message: [], // store 5 message to check listening loop
+        fcaApi: null, // store fca api
+        botID: null // store bot id
 };
 
 global.db = {
-	allThreadData: [],
-	allUserData: [],
-	allDashBoardData: [],
-	allGlobalData: [],
-	threadModel: null,
-	userModel: null,
-	dashboardModel: null,
-	globalModel: null,
-	threadsData: null,
-	usersData: null,
-	dashBoardData: null,
-	globalData: null,
-	receivedTheFirstMessage: {}
+        // all data
+        allThreadData: [],
+        allUserData: [],
+        allDashBoardData: [],
+        allGlobalData: [],
+
+        // model
+        threadModel: null,
+        userModel: null,
+        dashboardModel: null,
+        globalModel: null,
+
+        // handle data
+        threadsData: null,
+        usersData: null,
+        dashBoardData: null,
+        globalData: null,
+
+        receivedTheFirstMessage: {}
+
+        // all will be set in bot/login/loadData.js
 };
 
 global.client = {
-	dirConfig,
-	dirConfigCommands,
-	dirAccount,
-	countDown: {},
-	cache: {},
-	database: {
-		creatingThreadData: [],
-		creatingUserData: [],
-		creatingDashBoardData: [],
-		creatingGlobalData: []
-	},
-	commandBanned: configCommands.commandBanned
+        dirConfig,
+        dirConfigCommands,
+        dirAccount,
+        countDown: {},
+        cache: {},
+        database: {
+                creatingThreadData: [],
+                creatingUserData: [],
+                creatingDashBoardData: [],
+                creatingGlobalData: []
+        },
+        commandBanned: configCommands.commandBanned
 };
 
 const utils = require("./utils.js");
 global.utils = utils;
 const { colors } = utils;
+const shutdownManager = require("./func/gracefulShutdown.js");
 
+// Initialize global.temp with size-limited data structures
 global.temp = {
-	createThreadData: [],
-	createUserData: [],
-	createThreadDataError: [],
-	filesOfGoogleDrive: {
-		arraybuffer: {},
-		stream: {},
-		fileNames: {}
-	},
-	contentScripts: {
-		cmds: {},
-		events: {}
-	}
+        createThreadData: [],
+        createUserData: [],
+        createThreadDataError: new Set(), // Use Set for O(1) lookups and auto-dedup
+        contentScripts: {
+                cmds: {},
+                events: {}
+        },
+        // Add helper to limit array sizes
+        _addWithLimit(arr, item, maxSize = 1000) {
+                arr.push(item);
+                if (arr.length > maxSize) {
+                        arr.splice(0, arr.length - maxSize); // Keep only last maxSize items
+                }
+        }
 };
 
+// watch dirConfigCommands file and dirConfig
 const watchAndReloadConfig = (dir, type, prop, logName) => {
-	let lastModified = fs.statSync(dir).mtimeMs;
-	let isFirstModified = true;
-	fs.watch(dir, (eventType) => {
-		if (eventType === type) {
-			const oldConfig = global.GoatBot[prop];
-			setTimeout(() => {
-				try {
-					if (isFirstModified) {
-						isFirstModified = false;
-						return;
-					}
-					if (lastModified === fs.statSync(dir).mtimeMs) return;
-					global.GoatBot[prop] = JSON.parse(fs.readFileSync(dir, 'utf-8'));
-					log.success(logName, `Reloaded ${dir.replace(process.cwd(), "")}`);
-				}
-				catch (err) {
-					log.warn(logName, `Can't reload ${dir.replace(process.cwd(), "")}`);
-					global.GoatBot[prop] = oldConfig;
-				}
-				finally {
-					lastModified = fs.statSync(dir).mtimeMs;
-				}
-			}, 200);
-		}
-	});
+        let lastModified = fs.statSync(dir).mtimeMs;
+        let isFirstModified = true;
+
+        fs.watch(dir, (eventType) => {
+                if (eventType === type) {
+                        const oldConfig = global.GoatBot[prop];
+
+                        // wait 200ms to reload config
+                        setTimeout(() => {
+                                try {
+                                        // if file change first time (when start bot, maybe you know it's called when start bot?) => not reload
+                                        if (isFirstModified) {
+                                                isFirstModified = false;
+                                                return;
+                                        }
+                                        // if file not change => not reload
+                                        if (lastModified === fs.statSync(dir).mtimeMs) {
+                                                return;
+                                        }
+                                        global.GoatBot[prop] = JSON.parse(fs.readFileSync(dir, 'utf-8'));
+                                        log.success(logName, `Reloaded ${dir.replace(process.cwd(), "")}`);
+                                }
+                                catch (err) {
+                                        log.warn(logName, `Can't reload ${dir.replace(process.cwd(), "")}`);
+                                        global.GoatBot[prop] = oldConfig;
+                                }
+                                finally {
+                                        lastModified = fs.statSync(dir).mtimeMs;
+                                }
+                        }, 200);
+                }
+        });
 };
 
 watchAndReloadConfig(dirConfigCommands, 'change', 'configCommands', 'CONFIG COMMANDS');
@@ -194,66 +194,41 @@ global.GoatBot.envGlobal = global.GoatBot.configCommands.envGlobal;
 global.GoatBot.envCommands = global.GoatBot.configCommands.envCommands;
 global.GoatBot.envEvents = global.GoatBot.configCommands.envEvents;
 
+// ———————————————— LOAD LANGUAGE ———————————————— //
 const getText = global.utils.getText;
 
+// ———————————————— AUTO RESTART ———————————————— //
 if (config.autoRestart) {
-	const time = config.autoRestart.time;
-	if (!isNaN(time) && time > 0) {
-		utils.log.info("AUTO RESTART", getText("Goat", "autoRestart1", utils.convertTime(time, true)));
-		setTimeout(() => {
-			utils.log.info("AUTO RESTART", "Restarting...");
-			process.exit(2);
-		}, time);
-	}
-	else if (typeof time == "string" && time.match(/^((((\d+,)+\d+|(\d+(\/|-|#)\d+)|\d+L?|\*(\/\d+)?|L(-\d+)?|\?|[A-Z]{3}(-[A-Z]{3})?) ?){5,7})$/gmi)) {
-		utils.log.info("AUTO RESTART", getText("Goat", "autoRestart2", time));
-		const cron = require("node-cron");
-		cron.schedule(time, () => {
-			utils.log.info("AUTO RESTART", "Restarting...");
-			process.exit(2);
-		});
-	}
+        const time = config.autoRestart.time;
+        if (!isNaN(time) && time > 0) {
+                utils.log.info("AUTO RESTART", getText("Goat", "autoRestart1", utils.convertTime(time, true)));
+                setTimeout(() => {
+                        utils.log.info("AUTO RESTART", "Restarting...");
+                        process.exit(2);
+                }, time);
+        }
+        else if (typeof time == "string" && time.match(/^((((\d+,)+\d+|(\d+(\/|-|#)\d+)|\d+L?|\*(\/\d+)?|L(-\d+)?|\?|[A-Z]{3}(-[A-Z]{3})?) ?){5,7})$/gmi)) {
+                utils.log.info("AUTO RESTART", getText("Goat", "autoRestart2", time));
+                const cron = require("node-cron");
+                cron.schedule(time, () => {
+                        utils.log.info("AUTO RESTART", "Restarting...");
+                        process.exit(2);
+                });
+        }
 }
 
 (async () => {
-	// Google APIs completely removed
-	global.utils.sendMail = async () => {
-		console.log("📧 Email disabled - Google APIs removed");
-		return null;
-	};
-	global.utils.transporter = null;
-
-	// Check version
-	try {
-		const { data: { version } } = await axios.get("https://raw.githubusercontent.com/ncazad/Azadx69x/refs/heads/main/package.json");
-		const currentVersion = require("./package.json").version;
-		if (compareVersion(version, currentVersion) === 1)
-			utils.log.master("NEW VERSION", getText(
-				"Goat",
-				"newVersionDetected",
-				colors.gray(currentVersion),
-				colors.hex("#eb6a07", version),
-				colors.hex("#eb6a07", "node update")
-			));
-	} catch (e) {
-		console.log("Version check skipped");
-	}
-
-	// Stub Google Drive
-	utils.drive = {
-		checkAndCreateParentFolder: async () => null,
-		parentID: null
-	};
-
-	require(`./bot/login/login.js`);
+        // ———————————————— CHECK VERSION ———————————————— //
+        const { data: { version } } = await axios.get("https://raw.githubusercontent.com/ntkhang03/Goat-Bot-V2/main/package.json");
+        const currentVersion = require("./package.json").version;
+        if (utils.compareVersion(version, currentVersion) === 1)
+                utils.log.master("NEW VERSION", getText(
+                        "Goat",
+                        "newVersionDetected",
+                        colors.gray(currentVersion),
+                        colors.hex("#eb6a07", version),
+                        colors.hex("#eb6a07", "node update")
+                ));
+        // ———————————————————— LOGIN ———————————————————— //
+        require('./bot/login/login.js');
 })();
-
-function compareVersion(version1, version2) {
-	const v1 = version1.split(".");
-	const v2 = version2.split(".");
-	for (let i = 0; i < 3; i++) {
-		if (parseInt(v1[i]) > parseInt(v2[i])) return 1;
-		if (parseInt(v1[i]) < parseInt(v2[i])) return -1;
-	}
-	return 0;
-}
