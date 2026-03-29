@@ -1,0 +1,19 @@
+[phases.setup]
+nixPkgs = [
+  "cairo",
+  "pango",
+  "librsvg",
+  "libjpeg",
+  "giflib",
+  "pkg-config",
+  "libuuid",
+  "python3",
+  "gcc",
+  "gnumake"
+]
+
+[phases.install]
+cmds = ["npm install --legacy-peer-deps"]
+
+[start]
+cmd = "node patch-fca.js && node index.js"
